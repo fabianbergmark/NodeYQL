@@ -1,0 +1,54 @@
+0 info it worked if it ends with ok
+1 verbose cli [ '/usr/bin/node', '/usr/bin/npm', 'install', 'vm', '--save' ]
+2 info using npm@1.3.11
+3 info using node@v0.10.21
+4 verbose readDependencies using package.json deps
+5 verbose cache add [ 'vm', null ]
+6 verbose cache add name=undefined spec="vm" args=["vm",null]
+7 verbose parsed url { protocol: null,
+7 verbose parsed url   slashes: null,
+7 verbose parsed url   auth: null,
+7 verbose parsed url   host: null,
+7 verbose parsed url   port: null,
+7 verbose parsed url   hostname: null,
+7 verbose parsed url   hash: null,
+7 verbose parsed url   search: null,
+7 verbose parsed url   query: null,
+7 verbose parsed url   pathname: 'vm',
+7 verbose parsed url   path: 'vm',
+7 verbose parsed url   href: 'vm' }
+8 silly lockFile 0a7c9cdf-vm vm
+9 verbose lock vm /home/fabian/.npm/0a7c9cdf-vm.lock
+10 silly lockFile 0a7c9cdf-vm vm
+11 silly lockFile 0a7c9cdf-vm vm
+12 verbose addNamed [ 'vm', '' ]
+13 verbose addNamed [ null, '*' ]
+14 silly lockFile 7435b407-vm vm@
+15 verbose lock vm@ /home/fabian/.npm/7435b407-vm.lock
+16 silly addNameRange { name: 'vm', range: '*', hasData: false }
+17 verbose url raw vm
+18 verbose url resolving [ 'https://registry.npmjs.org/', './vm' ]
+19 verbose url resolved https://registry.npmjs.org/vm
+20 info trying registry request attempt 1 at 00:16:10
+21 http GET https://registry.npmjs.org/vm
+22 http 404 https://registry.npmjs.org/vm
+23 silly registry.get cb [ 404,
+23 silly registry.get   { server: 'CouchDB/1.3.1 (Erlang OTP/R15B03)',
+23 silly registry.get     date: 'Sat, 09 Nov 2013 23:15:59 GMT',
+23 silly registry.get     'content-type': 'application/json',
+23 silly registry.get     'content-length': '52',
+23 silly registry.get     'cache-control': 'must-revalidate' } ]
+24 silly lockFile 7435b407-vm vm@
+25 silly lockFile 7435b407-vm vm@
+26 error 404 'vm' is not in the npm registry.
+26 error 404 You should bug the author to publish it
+26 error 404
+26 error 404 Note that you can also install from a
+26 error 404 tarball, folder, or http url, or git url.
+27 error System Linux 3.11.5-1-ARCH
+28 error command "/usr/bin/node" "/usr/bin/npm" "install" "vm" "--save"
+29 error cwd /home/fabian/src/YQL/routes
+30 error node -v v0.10.21
+31 error npm -v 1.3.11
+32 error code E404
+33 verbose exit [ 1, true ]

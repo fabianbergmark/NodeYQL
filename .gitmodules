@@ -1,0 +1,3 @@
+[submodule "yql-tables"]
+	path = yql-tables
+	url = https://github.com/fabianbergmark/yql-tables.git
