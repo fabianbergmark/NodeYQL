@@ -8,16 +8,23 @@ var cache = require('./cache')
 
 var vm = require('vm')
   , zlib = require('zlib')
+  , xpathM = require('xpath')
   , htmltidy = require('htmltidy')
   , request = require('request');
-module.exports = function(table, xml) {
+
+module.exports = function(settings, table, select) {
 
   exports.create = function(restObj) {
+
+    var name = table.replace(/\//g, '.');
+
+    var threads = [];
 
     var y = {
       "cache": cache.create(),
       "context": {
-        "table": table
+        "host" : settings.url,
+        "table": name
       },
       "crypto": crypto.create(),
       "date": date.create(),
@@ -43,12 +50,22 @@ module.exports = function(table, xml) {
       return fibers.yield();
     }
 
-    function deflate(string ,level) {
+    function deflate(string, level) {
+
+      var fiber = fibers.current;
+
       var stream = zlib.createDeflate({ "level": level });
-      return new Buffer(string).pipe(stream).toString('base64');
+      return new Buffer(string)
+        .pipe(stream)
+        .toString('base64')
+        .on('end', function(result) {
+          fiber.run(result);
+        });
+
+      return fibers.yield();
     }
 
-    function env(file) {
+    function env(src) {
 
     }
 
@@ -89,18 +106,53 @@ module.exports = function(table, xml) {
     function rest(url, callback) {
       restObj.url = url;
       if (callback) {
+        fibers(function() {
+          var fiber = fibers.current;
 
+          var index = threads.push(fiber);
+
+          request(
+            { "method"  : "GET",
+              "uri"     : restObj.url,
+              "headers" : restObj.headers,
+              "timeout" : restObj.timeout },
+            function(err, resp, body) {
+              var result = {};
+              result.response = body;
+              result.headers = resp.headers;
+              result.status = resp.statusCode;
+              result.timeout = false;
+              fiber.run();
+              callback(result);
+            });
+
+          try {
+            fibers.yield();
+          } catch (e) {
+            delete threads[index];
+          }
+        }).run();
       }
-
       return restObj;
     }
 
     function sync(flag) {
-
+      threads.forEach(function(thread) {
+        if (thread !== undefined) {
+          thread.yield();
+        }
+      });
     }
 
     function tidy(html) {
-      return wait.for(htmltidy.tidy, html);
+
+      var fiber = fibers.current;
+
+      return htmltidy.tidy(html, function(err, html) {
+        fiber.run(html);
+      });
+
+      return fibers.yield();
     }
 
     function use(url, namespace) {
@@ -108,8 +160,9 @@ module.exports = function(table, xml) {
     }
 
     function xpath(object, xpath) {
-
+      return xpathM.select(object, xpath);
     }
+
     return y;
   }
 

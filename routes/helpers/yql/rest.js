@@ -8,7 +8,7 @@ var fibers = require('fibers')
   , xpath = require('xpath')
   , request = require('request');
 
-module.exports = function(table, select) {
+module.exports = function(settings, table, select) {
 
   function createHeaders(vars) {
     var result = {};
@@ -25,22 +25,24 @@ module.exports = function(table, select) {
 
   function createUrl(vars) {
 
-    var url = xpath.select('//url', select).toString().replace(/<url>([\s\S]*?)<\/url>/, '$1');
+    var url = xpath.select('//url', select).toString().replace(/<url>\s*(.*?)\s*<\/url>/, '$1');
 
     var params = (/{(.*?)}/g).exec(url);
-    params.shift();
-    for (var i = 0; i < params.length; ++i) {
-      var param = params[i];
-      var key = xpath.select('//key[@id=\'' + param +  '\' and @paramType=\'path\']', select);
-      if (key) {
-        key = key[0];
 
-        var val = "";
-        if (vars[param] !== undefined) {
-          val = vars[param];
+    if (params) {
+      for (var i = 0; i < params.length; ++i) {
+        var param = params[i];
+        var key = xpath.select('//key[@id=\'' + param +  '\' and @paramType=\'path\']', select);
+        if (key) {
+          key = key[0];
+
+          var val = "";
+          if (vars[param] !== undefined) {
+            val = vars[param];
+          }
+
+          url = url.replace('{' + param + '}', val);
         }
-
-        url = url.replace('{' + param + '}', val);
       }
     }
 
@@ -89,7 +91,13 @@ module.exports = function(table, select) {
     };
 
     function accept(contentType) {
+      rest.headers['Accept'] = contentType;
+      return rest;
+    }
 
+    function contentType(contentType) {
+      rest.headers['Content-Type'] = contentType;
+      return rest;
     }
 
     function decompress(bool) {
@@ -107,11 +115,16 @@ module.exports = function(table, select) {
           "uri"     : rest.url,
           "headers" : rest.headers },
         function(err, resp, body) {
-          result.response = body;
-          result.headers = resp.headers;
-          result.status = resp.statusCode;
-          result.timeout = false;
           result.url = rest.url;
+          if (err) {
+            if (err.code == 'ETIMEDOUT')
+              result.timeout = true;
+          } else {
+            result.response = body;
+            result.headers  = resp.headers;
+            result.status   = resp.statusCode;
+            result.timeout  = false;
+          }
           fiber.run();
         });
 
@@ -142,11 +155,16 @@ module.exports = function(table, select) {
           "uri"     : rest.url,
           "headers" : rest.headers },
         function(err, resp, body) {
-          result.response = body;
-          result.headers = resp.headers;
-          result.status = resp.statusCode;
-          result.timeout = false;
           result.url = rest.url;
+          if (err) {
+            if (err.code == 'ETIMEDOUT')
+              result.timeout = true;
+          } else {
+            result.response = body;
+            result.headers = resp.headers;
+            result.status = resp.statusCode;
+            result.timeout = false;
+          }
           fiber.run();
         });
 
@@ -165,11 +183,16 @@ module.exports = function(table, select) {
           "uri"     : rest.url,
           "headers" : rest.headers },
         function(err, resp, body) {
-          result.response = body;
-          result.headers = resp.headers;
-          result.status = resp.statusCode;
-          result.timeout = false;
           result.url = rest.url;
+          if (err) {
+            if (err.code == 'ETIMEDOUT')
+              result.timeout = true;
+          } else {
+            result.response = body;
+            result.headers = resp.headers;
+            result.status = resp.statusCode;
+            result.timeout = false;
+          }
           fiber.run();
         });
 
@@ -179,18 +202,20 @@ module.exports = function(table, select) {
 
     function header(name, value) {
       rest.headers[name] = value;
+      return rest;
     }
 
     function jsonCompat(mode) {
-
+      return rest;
     }
 
     function matrix(name, value) {
-
+      return rest;
     }
 
     function path(segment) {
-
+      rest.url += '/' + segment;
+      return rest;
     }
 
     function post(content) {
@@ -205,11 +230,16 @@ module.exports = function(table, select) {
           "headers" : rest.headers,
           "body"    : content },
         function(err, resp, body) {
-          result.response = body;
-          result.headers = resp.headers;
-          result.status = resp.statusCode;
-          result.timeout = false;
           result.url = rest.url;
+          if (err) {
+            if (err.code == 'ETIMEDOUT')
+              result.timeout = true;
+          } else {
+            result.response = body;
+            result.headers  = resp.headers;
+            result.status   = resp.statusCode;
+            result.timeout  = false;
+          }
           fiber.run();
         });
 
@@ -229,11 +259,15 @@ module.exports = function(table, select) {
           "headers" : rest.headers,
           "body"    : content },
         function(err, resp, body) {
-          result.response = body;
-          result.headers = resp.headers;
-          result.status = resp.statusCode;
-          result.timeout = false;
-          result.url = rest.url;
+          if (err) {
+            if (err.code == 'ETIMEDOUT')
+              result.timeout = true;
+          } else {
+            result.response = body;
+            result.headers  = resp.headers;
+            result.status   = resp.statusCode;
+            result.timeout  = false;
+          }
           fiber.run();
         });
 
@@ -242,12 +276,25 @@ module.exports = function(table, select) {
     }
 
     function query(key, value) {
-      rest.url += "&" + key + "=" + value;
+
+      var keys;
+      if (!key instanceof Array)
+        keys[key] = value;
+      else
+        keys = key;
+
+      for (var key in keys) {
+        var value = keys[key];
+        vars[key] = value;
+      }
+
+      rest.url = createUrl(vars);
       return rest;
     }
 
     function timeout(ms) {
-
+      rest.timeout = ms;
+      return rest;
     }
 
     return rest;

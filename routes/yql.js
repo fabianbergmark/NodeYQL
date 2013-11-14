@@ -29,10 +29,8 @@ module.exports = function(settings, table, xml) {
   exports.getTest = function(req, res) {
 
     fibers(function() {
-
-        var results = test();
-        res.send(results);
-
+      var results = test();
+      res.send(results);
     }).run();
   }
 
@@ -53,13 +51,12 @@ module.exports = function(settings, table, xml) {
 
     if (samples.length > 0) {
       var vars = {};
-      var sample = samples[0].toString();
+      var sample = samples[0].toString().replace(/<sampleQuery>\s*(.*?)\s*<\/sampleQuery>/g, '$1') + ";";
       var regexp =
         /.*?where\s+(.*?)\s*=\s*'(.*?)'(?:\s+and\s+(.*?)\s*=\s*'(.*?)')*;.*?/gi;
 
       var vs = regexp.exec(sample);
-      vs.shift();
-      for (var i = 0; i < vs.length-1; i+=2) {
+      for (var i = 1; i < vs.length-1; i+=2) {
         var k = vs[i];
         var v = vs[i+1];
         vars[k] = v;
@@ -84,7 +81,7 @@ module.exports = function(settings, table, xml) {
 
     selects.some(function(select) {
 
-      var yql = require('./helpers/yql')(table, select);
+      var yql = require('./helpers/yql')(settings, table, xml, select);
 
       var keys = xpath.select('//key', select);
 
@@ -115,12 +112,7 @@ module.exports = function(settings, table, xml) {
       if (missing)
         return false;
 
-      var execute =
-        xpath.select('//execute', xml)
-        .toString()
-        .replace(/[\s\S]*CDATA\[([\s\S]*?)\]\][\s\S]*/, '$1');
-
-      response = yql.run(execute, env);
+      response = yql.run(env);
       return true;
     });
     return response;

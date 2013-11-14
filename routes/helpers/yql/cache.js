@@ -6,14 +6,22 @@ exports.create = function() {
 
   var cache = {
     "CacheOpResult": {},
-    "decr": decr,
-    "incr": incr,
-    "put": put,
-    "remove": remove
+    "decr"         : decr,
+    "get"          : get,
+    "incr"         : incr,
+    "put"          : put,
+    "remove"       : remove
   };
 }
 
 function decr(key, by, def, expiry, timeout) {
+
+}
+
+function get(key, timeout) {
+  var cacheOpResult =
+    { "op": "get" };
+
 
 }
 

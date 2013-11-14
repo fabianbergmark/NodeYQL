@@ -10,14 +10,13 @@ var express = require('express')
   , path = require('path')
   , fs = require('fs')
   , yql = require('./routes/yql')
-  , test = require('./routes/test')
   , xmldom = require('xmldom').DOMParser
   , walk = require('./helpers/walk');
 
 var app = express();
 
 app.configure(function() {
-  app.set('port', process.env.PORT || settings.port);
+  app.set('port', process.env.PORT || settings.port.internal);
   app.set('views', __dirname + '/views');
   app.set('view engine', 'jade');
   app.use(express.favicon());
@@ -36,6 +35,16 @@ app.configure('development', function(){
 
 app.get('/', routes.index);
 
+fs.readFile('routes/helpers/empty.xml', function (err, data) {
+  var empty = new xmldom().parseFromString(data.toString());
+  var test = require('./routes/test')(settings, empty);
+
+  app.get('/test', test.getRun);
+  app.get('/test/env', test.getEnv);
+  app.get('/test/src', test.getSrc);
+  app.get('/test/data', test.getData);
+
+});
 
 walk.walk('yql-tables', function(err, files) {
   if (err) {
@@ -58,20 +67,13 @@ walk.walk('yql-tables', function(err, files) {
         table = path.basename(rel, '.xml').replace(/\./g, '/');
 
         var module     = yql(settings, table, xml);
-        var testModule = test(settings, table, xml);
-
 
         environment.push(module.environment());
-        testEnvironment.push(testModule.environment());
 
         app.post('/' + table, module.postRun);
         app.get('/' + table + '/env', module.getEnv);
         app.get('/' + table + '/src', module.getSrc);
         app.get('/' + table + '/test', module.getTest);
-
-        app.get('/test/' + table, testModule.getRun);
-        app.get('/test/' + table + '/env', testModule.getEnv);
-        app.get('/test/' + table + '/src', testModule.getSrc);
 
       } catch (err) {
         console.log('Invalid XML document: ' + openTable + " " + err);
@@ -81,10 +83,6 @@ walk.walk('yql-tables', function(err, files) {
 
   app.get('/env', function(req, res) {
     res.send(environment.join('\n'));
-  });
-
-  app.get('/test/env', function(req, res) {
-    res.send(testEnvironment.join(';\n'));
   });
 });
 
