@@ -14,7 +14,7 @@ module.exports = function(settings, table, xml, select) {
 
   exports.run = function(vars) {
     var env = {};
-    env.response = {};
+    env.response = { "object": {} };;
     env.request = rest.create(vars);
     env.y = y.create(env.request);
 
@@ -57,12 +57,44 @@ module.exports = function(settings, table, xml, select) {
       try {
         var ecma = transform.ecma(js);
         vm.runInContext(ecma, context);
-        return env.response;
+        var results = env.response.object;
+        results = JSON.parse(JSON.stringify(results));
+        var result =
+            { "result": results };
+
+        return YQLify(result);
       } catch (err) {
         console.log("Error in table js: " + err);
       }
     }
   }
+
+  function YQLify(result) {
+    if (result instanceof Array ) {
+      if (result.length == 0)
+        result = null;
+      else if (result.length == 1)
+        result = YQLify(result[0]);
+      else {
+        for (var i = 0; i < result.length; ++i)
+          result[i] = YQLify(result[i]);
+      }
+    } else if (typeof result === 'object') {
+      for(var key in result) {
+        var val = result[key];
+        val = YQLify(val);
+        if (val == null)
+          delete result[key]
+        else
+          result[key] = val;
+      }
+    } else if (typeof result === 'number') {
+      result = "" + result;
+    } else if (typeof result === 'boolean')
+      result = "" + result;
+    return result;
+  }
+
 
   return exports;
 }

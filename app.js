@@ -5,13 +5,14 @@
 var settings = require('./settings');
 
 var express = require('express')
-  , routes = require('./routes')
   , http = require('http')
   , path = require('path')
+  , fibers = require('fibers')
   , fs = require('fs')
   , yql = require('./routes/yql')
-  , xmldom = require('xmldom').DOMParser
-  , walk = require('./helpers/walk');
+  , DOMParser = require('xmldom').DOMParser
+  , walk = require('./helpers/walk')
+  , test = require('./routes/test');
 
 var app = express();
 
@@ -33,21 +34,55 @@ app.configure('development', function(){
   app.use(express.errorHandler());
 });
 
-app.get('/', routes.index);
+fibers(function() {
 
-fs.readFile('routes/helpers/empty.xml', function (err, data) {
-  var empty = new xmldom().parseFromString(data.toString());
-  var test = require('./routes/test')(settings, empty);
+  var fiber = fibers.current;
 
-  app.get('/test', test.getRun);
-  app.get('/test/env', test.getEnv);
-  app.get('/test/src', test.getSrc);
-  app.get('/test/data', test.getData);
+  walk.walk(
+    'routes/helpers/tests',
+    function (err, files) {
+      fiber.run(files);
+    });
 
-});
+  var files = fibers.yield();
 
-walk.walk('yql-tables', function(err, files) {
-  if (err) {
+  if (!files) {
+    console.log("Error loading test files");
+    return;
+  }
+  var testCases = files.filter(function(fileCase) {
+    return path.extname(fileCase) === '.js';
+  });
+
+  testCases.forEach(function(testCase) {
+
+    var js = require(testCase)(settings).js;
+    var rel = path.relative('helpers/tests', testCase);
+    var table = path.basename(rel, '.js');
+    var module = test(settings, table, js);
+
+    app.get('/test/' + table, module.getRun);
+    app.get('/test/' + table + '/env', module.getEnv);
+    app.get('/test/' + table + '/src', module.getSrc);
+  });
+
+  app.get('/test/data', function(req, res) {
+    fs.readFile(
+      'routes/helpers/example.json',
+      function (err, data) {
+        res.send(data.toString());
+      });
+  });
+
+  walk.walk(
+    'yql-tables',
+    function(err, files) {
+      fiber.run(files);
+    });
+
+  var files = fibers.yield();
+
+  if (!files) {
     console.log("Error loading OpenTable files");
     return;
   }
@@ -61,7 +96,7 @@ walk.walk('yql-tables', function(err, files) {
   openTables.forEach(function(openTable) {
     fs.readFile(openTable, function(err, data) {
       try {
-        var xml = new xmldom().parseFromString(data.toString());
+        var xml = new DOMParser().parseFromString(data.toString());
 
         rel = path.relative('yql-tables', openTable);
         table = path.basename(rel, '.xml').replace(/\./g, '/');
@@ -84,7 +119,7 @@ walk.walk('yql-tables', function(err, files) {
   app.get('/env', function(req, res) {
     res.send(environment.join('\n'));
   });
-});
+}).run();
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log("Express server listening on port " + app.get('port'));

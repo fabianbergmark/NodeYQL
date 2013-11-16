@@ -8,6 +8,8 @@ var cache = require('./cache')
 
 var vm = require('vm')
   , zlib = require('zlib')
+  , stream = require('stream')
+  , bufferjs = require('bufferjs')
   , xpathM = require('xpath')
   , htmltidy = require('htmltidy')
   , request = require('request');
@@ -28,24 +30,27 @@ module.exports = function(settings, table, select) {
       },
       "crypto": crypto.create(),
       "date": date.create(),
+      "deflate": deflate,
       "decompress": decompress,
       "diagnostics": {},
       "env": env,
       "include": include,
       "inflate": inflate,
+      "jsToString": jsToString,
       "log": log,
       "query": query,
       "rest": rest,
       "sync": sync,
       "tidy": tidy,
       "use": use,
+      "xparseJson": xparseJson,
       "xpath": xpath
     }
 
     function decompress(data) {
       var fiber = fibers.current;
-      zlib.gunzip(new Buffer(data, 'base64'), function(result) {
-        fiber.run(result);
+      zlib.gunzip(new Buffer(data, 'base64'), function(err, result) {
+        fiber.run(result.toString('utf8'));
       });
       return fibers.yield();
     }
@@ -54,13 +59,22 @@ module.exports = function(settings, table, select) {
 
       var fiber = fibers.current;
 
-      var stream = zlib.createDeflate({ "level": level });
-      return new Buffer(string)
-        .pipe(stream)
-        .toString('base64')
-        .on('end', function(result) {
-          fiber.run(result);
-        });
+      var result = [];
+
+      var out = new stream.Stream();
+
+      out.write = function(data) {
+        result.push(data);
+      }
+
+      out.end = function() {
+        result = Buffer.concat(result);
+        fiber.run(result.toString('base64'));
+      }
+
+      var deflate = zlib.createDeflate({ "level": level });
+      deflate.end(string, 'utf8');
+      deflate.pipe(out);
 
       return fibers.yield();
     }
@@ -87,12 +101,17 @@ module.exports = function(settings, table, select) {
     }
 
     function inflate(data) {
-      var result;
       var fiber = fibers.current;
-      zlib.inflate(data, function(result) {
-        fiber.run(result);
+
+      var buf = new Buffer(data, 'base64');
+      zlib.inflate(buf, function(err, result) {
+        fiber.run(result.toString('utf8'));
       });
       return fibers.yield();
+    }
+
+    function jsToString(json) {
+      return JSON.stringify(json);
     }
 
     function log(message) {
@@ -157,6 +176,10 @@ module.exports = function(settings, table, select) {
 
     function use(url, namespace) {
 
+    }
+
+    function xparseJson(string) {
+      return JSON.parse(string);
     }
 
     function xpath(object, xpath) {
