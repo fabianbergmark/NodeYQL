@@ -3,8 +3,6 @@
  */
 
 var fibers = require('fibers')
-  , future =  require('fibers/future')
-  , wait = future.wait
   , xpath = require('xpath')
   , request = require('request');
 
@@ -23,50 +21,123 @@ module.exports = function(settings, table, select) {
     return result;
   }
 
-  function createUrl(vars) {
+  function createQuerys(vars) {
 
-    var url = xpath.select('//url', select).toString().replace(/<url>\s*(.*?)\s*<\/url>/, '$1');
+    var result = {};
 
-    var params = (/{(.*?)}/g).exec(url);
+    var url = xpath.select('//url', select);
+    if (url.length > 0 && url[0].firstChild) {
 
-    if (params) {
-      for (var i = 0; i < params.length; ++i) {
-        var param = params[i];
-        var key = xpath.select('//key[@id=\'' + param +  '\' and @paramType=\'path\']', select);
-        if (key) {
-          key = key[0];
+      url = url[0].firstChild.toString();
 
-          var val = "";
-          if (vars[param] !== undefined) {
-            val = vars[param];
-          }
+      var querys = url.replace(/^.*?\?(.*)/, '$1');
 
-          url = url.replace('{' + param + '}', val);
+      var regexp = /(.*?)=([^&]*)/g;
+      var match;
+
+      while (match = regexp.exec(querys)) {
+        var key = match[1];
+        var val = match[2];
+        if (match = (/^{(.*)}$/).exec(val)) {
+
+          var param = match[1];
+          var k = xpath.select('//key[@id=\'' + param +  '\' and @paramType=\'path\']', select);
+          if (k.length > 0) {
+            if (vars[param] !== undefined) {
+              val = vars[param];
+            } else
+              val = '';
+          } else
+            throw "Query parameter '" + param + "' has no associated key";
         }
+        if (match = (/^{(.*)}$/).exec(key)) {
+          var param = match[1];
+          var k = xpath.select('//key[@id=\'' + param +  '\' and @paramType=\'query\']', select);
+          if (k.length > 0) {
+            if (vars[param] !== undefined) {
+              key = vars[param];
+            } else
+              key = '';
+          } else
+            throw "Query parameter '" + param + "' has no associated key";
+        }
+
+        if (key !== '')
+          result[key] = val;
       }
     }
-
-    var first = true;
 
     var querys = xpath.select('//key[@paramType=\'query\']', select);
 
     querys.forEach(function(query) {
       var id = query.getAttribute('id');
       if (vars[id] !== undefined && vars[id] !== '') {
-        url += first ? '?' : '&';
-        url += id + '=' + vars[id];
-        if (first)
-          first = false;
+        result[id] = vars[id];
       }
     });
 
+    return result;
+  }
+
+  function createUrl(vars) {
+
+    var url = xpath.select('//url', select);
+    if (url.length > 0 && url[0].firstChild) {
+      url = url[0].firstChild.toString();
+
+      var base = url.replace(/^(.*?)\?.*/, '$1');
+
+      var params = (/{(.*?)}/g).exec(base);
+
+      if (params) {
+        for (var i = 0; i < params.length; ++i) {
+          var param = params[i];
+          var key = xpath.select('//key[@id=\'' + param +  '\' and @paramType=\'path\']', select);
+          if (key.length > 0) {
+            key = key[0];
+
+            var val = "";
+            if (vars[param] !== undefined) {
+              val = vars[param];
+            }
+
+            base = base.replace('{' + param + '}', val);
+          }
+        }
+      }
+
+      return base;
+    } else
+      return "";
+  }
+
+  function buildUrl(base, querys) {
+
+    var url = base;
+
+    if (Object.keys(querys).length > 0) {
+      url += "?";
+      var first = true;
+      for (var key in querys) {
+        var val = querys[key];
+        if (!first)
+          url += "&";
+
+        url += key + '=' + val;
+        if (first)
+          first = false;
+      }
+    }
     return url;
   }
 
   exports.create = function(vars) {
 
-    var url = createUrl(vars);
+    var baseUrl = createUrl(vars);
+    var querys = createQuerys(vars);
     var headers = createHeaders(vars);
+
+    var url = buildUrl(baseUrl, querys);
 
     var rest = {
       "headers": headers,
@@ -153,7 +224,8 @@ module.exports = function(settings, table, select) {
       request(
         { "method"  : "GET",
           "uri"     : rest.url,
-          "headers" : rest.headers },
+          "headers" : rest.headers,
+          "followRedirect": false },
         function(err, resp, body) {
           result.url = rest.url;
           if (err) {
@@ -277,18 +349,18 @@ module.exports = function(settings, table, select) {
 
     function query(key, value) {
 
-      var keys;
+      var keys = {};
       if (!key instanceof Array)
         keys[key] = value;
       else
         keys = key;
 
       for (var key in keys) {
-        var value = keys[key];
-        vars[key] = value;
+        var val = keys[key];
+        querys[key] = val;
       }
 
-      rest.url = createUrl(vars);
+      rest.url = buildUrl(baseUrl, querys);
       return rest;
     }
 

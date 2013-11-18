@@ -1,28 +1,35 @@
+/*
+ * Run YQL test cases.
+ */
+
 var fibers = require('fibers')
   , fs = require('fs')
   , DOMParser = require('xmldom').DOMParser
   , request = require('request')
-  , xpath = require('xpath');
+  , xpath = require('xpath')
+  , yqlGenerator = require('./yql')
+  , jsDiff = require('diff');;
 
-module.exports = function(settings, table, js) {
+module.exports = function(settings, testcase, js) {
 
-  exports.create = function() {
+  var yahoo = require('./yahoo.js')(settings);
 
-    var fiber = fibers.current;
+  var fiber = fibers.current;
 
-    fs.readFile(
-      './routes/helpers/empty.xml',
-      function(err, data) {
-        if (err)
-          fiber.run(null);
-        else
-          var xml = new DOMParser().parseFromString(data.toString());
-          fiber.run(xml);
-      });
+  fs.readFile(
+    './routes/helpers/empty.xml',
+    function(err, data) {
+      if (err)
+        fiber.run(null);
+      else {
+        var xml = new DOMParser().parseFromString(data.toString());
+        fiber.run(xml);
+        }
+    });
 
-    var xml = fibers.yield();
+  var xml = fibers.yield();
 
-    var save =
+  var save =
 'function save() {\
   var ret = arguments[0];\
   var result =\
@@ -33,45 +40,45 @@ module.exports = function(settings, table, js) {
    return result;\
 }';
 
-    var cdata = xml.createCDATASection(save);
+  var cdata = xml.createCDATASection(save);
 
-    var global = xpath.select('/table/execute', xml)[0];
-    global.appendChild(cdata);
+  var global = xpath.select('/table/execute', xml)[0];
+  global.appendChild(cdata);
 
-    var url = settings.url + '/test/data';
+  var url = settings.url + '/test/data';
 
-    var cdata = xml.createCDATASection(js);
+  var cdata = xml.createCDATASection(js);
 
-    var execute = xpath.select('//select//execute', xml)[0];
-    execute.appendChild(cdata);
+  var execute = xpath.select('//select//execute', xml)[0];
+  execute.appendChild(cdata);
 
-    return xml;
+  exports.xml = xml;
+
+  exports.run = function() {
+    var local = executeLocal();
+    var remote = executeRemote();
+
+    var diff = jsDiff.diffLines(
+      JSON.stringify(local, null, 2),
+      JSON.stringify(remote, null, 2));
+    var pass = !diff.some(function(d) {return d.added || d.removed; });
+
+    return { "local": local,
+             "remote": remote,
+             "diff": diff,
+             "pass": pass };
   }
 
-  exports.execute = function(query, table) {
+  function executeLocal() {
+    var select = xpath.select('//select', xml)[0];
+    var yql = yqlGenerator(settings, 'empty', xml, select);
+    return yql.run({});
+  }
 
-    var fiber = fibers.current;
-
-    var env = settings.url + '/test/' + table + '/env';
-    var url = settings.yql.url
-        + '?q=' + query
-        + '&format=json'
-        + '&env=' + env
-//        + '&debug=true'
-//        + '&diagnostics=true';
-    request(
-      { "method": "GET",
-        "uri": url },
-      function(err, resp, body) {
-        if (err) {
-          fiber.run(null);
-        } else {
-          body = JSON.parse(body);
-          fiber.run(body.query.results);
-        }
-      });
-
-    return fibers.yield();
+  function executeRemote() {
+    var query = "SELECT * FROM " + testcase + ";";
+    var env = settings.url + '/test/' + testcase + '/env';
+    return yahoo.query(query, env);
   }
 
   return exports;

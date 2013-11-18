@@ -133,22 +133,25 @@ module.exports = function(settings, table, select) {
           request(
             { "method"  : "GET",
               "uri"     : restObj.url,
-              "headers" : restObj.headers,
-              "timeout" : restObj.timeout },
+              "headers" : restObj.headers },
             function(err, resp, body) {
               var result = {};
-              result.response = body;
-              result.headers = resp.headers;
-              result.status = resp.statusCode;
-              result.timeout = false;
+              if (err) {
+                console.log(err);
+              } else {
+                result.response = body;
+                result.headers = resp.headers;
+                result.status = resp.statusCode;
+                result.timeout = false;
+              }
               fiber.run();
               callback(result);
             });
 
           try {
             fibers.yield();
-          } catch (e) {
             delete threads[index];
+          } catch (e) {
           }
         }).run();
       }
@@ -156,11 +159,12 @@ module.exports = function(settings, table, select) {
     }
 
     function sync(flag) {
-      threads.forEach(function(thread) {
+      while (threads.length > 0) {
+        var thread = threads.pop();
         if (thread !== undefined) {
           thread.yield();
         }
-      });
+      };
     }
 
     function tidy(html) {

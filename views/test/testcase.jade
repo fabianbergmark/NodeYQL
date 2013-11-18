@@ -1,0 +1,19 @@
+extends ../layout
+
+block content
+  div.container
+    h1 Testcase: #{testcase}
+    h2 Pass: 
+      if pass
+        span.glyphicon.glyphicon-ok
+      else
+        span.glyphicon.glyphicon-ban-circle
+    p #{testcase.desc}
+    h3 Source code
+    pre #{src}
+    h3 Local YQL result
+    pre #{result.local}
+    h3 Yahoo YQL result
+    pre #{result.remote}
+    h3 Diff
+    pre #{result.diff}

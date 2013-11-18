@@ -26,7 +26,7 @@ module.exports = function(settings, table, xml, select) {
       }
     });
 
-    env.fibers = fibers = require('fibers');
+    env.fibers  = fibers = require('fibers');
     env.console = console;
 
     var context = vm.createContext(env);
@@ -61,6 +61,20 @@ module.exports = function(settings, table, xml, select) {
         results = JSON.parse(JSON.stringify(results));
         var result =
             { "result": results };
+
+        return YQLify(result);
+      } catch (err) {
+        console.log("Error in table js: " + err);
+      }
+    } else {
+      js =
+        "response.object = request.get().response;";
+      try {
+        vm.runInContext(js, context);
+        var results = env.response.object;
+        results = JSON.parse(JSON.stringify(results));
+        var result =
+          { "result": results };
 
         return YQLify(result);
       } catch (err) {

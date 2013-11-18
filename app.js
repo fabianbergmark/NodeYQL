@@ -8,11 +8,13 @@ var express = require('express')
   , http = require('http')
   , path = require('path')
   , fibers = require('fibers')
-  , fs = require('fs')
-  , yql = require('./routes/yql')
   , DOMParser = require('xmldom').DOMParser
+  , fs = require('fs')
   , walk = require('./helpers/walk')
-  , test = require('./routes/test');
+  , yql  = { "table": require('./routes/yql/table'),
+             "index":   require('./routes/yql') }
+  , test = { "testcase": require('./routes/test/testcase'),
+             "index": require('./routes/test') };
 
 var app = express();
 
@@ -39,7 +41,7 @@ fibers(function() {
   var fiber = fibers.current;
 
   walk.walk(
-    'routes/helpers/tests',
+    './tests',
     function (err, files) {
       fiber.run(files);
     });
@@ -50,29 +52,31 @@ fibers(function() {
     console.log("Error loading test files");
     return;
   }
-  var testCases = files.filter(function(fileCase) {
-    return path.extname(fileCase) === '.js';
+
+  var files = files.filter(function(file) {
+    return path.extname(file) === '.js';
   });
 
-  testCases.forEach(function(testCase) {
+  files.forEach(function(file) {
 
-    var js = require(testCase)(settings).js;
-    var rel = path.relative('helpers/tests', testCase);
-    var table = path.basename(rel, '.js');
-    var module = test(settings, table, js);
+    var js  = require(file)(settings).js;
+    var rel = path.relative('tests', file);
+    var pps = path.basename(rel, '.js');
+    var testcase = require('./routes/test/testcase')(settings, pps, js);
+    delete require.cache[require.resolve('./routes/test/testcase')];
 
-    app.get('/test/' + table, module.getRun);
-    app.get('/test/' + table + '/env', module.getEnv);
-    app.get('/test/' + table + '/src', module.getSrc);
+    app.get('/test/' + pps, testcase.getRun);
+    app.get('/test/' + pps + '/env', testcase.getEnv);
+    app.get('/test/' + pps + '/src', testcase.getSrc);
+    app.get('/test/' + pps + '/desc', testcase.getDesc);
+
+    app.get('/api/test/' + pps, testcase.getApiRun);
+
   });
 
-  app.get('/test/data', function(req, res) {
-    fs.readFile(
-      'routes/helpers/example.json',
-      function (err, data) {
-        res.send(data.toString());
-      });
-  });
+  var testIndex = test.index(settings, files);
+  app.get('/test', testIndex.getIndex);
+  app.get('/test/data/json', testIndex.getJSONData);
 
   walk.walk(
     'yql-tables',
@@ -86,39 +90,38 @@ fibers(function() {
     console.log("Error loading OpenTable files");
     return;
   }
-  var openTables = files.filter(function(file) {
+
+  var files = files.filter(function(file) {
     return path.extname(file) === '.xml';
   });
 
-  var environment = [];
-  var testEnvironment = [];
+  var tables = [];
 
-  openTables.forEach(function(openTable) {
-    fs.readFile(openTable, function(err, data) {
+  files.forEach(function(file) {
+    fs.readFile(file, function(err, data) {
       try {
         var xml = new DOMParser().parseFromString(data.toString());
+        rel = path.relative('yql-tables', file);
+        pps = path.basename(rel, '.xml').replace(/\./g, '/');
 
-        rel = path.relative('yql-tables', openTable);
-        table = path.basename(rel, '.xml').replace(/\./g, '/');
+        var table = yql.table(settings, rel, xml);
+        tables.push(table);
 
-        var module     = yql(settings, table, xml);
-
-        environment.push(module.environment());
-
-        app.post('/' + table, module.postRun);
-        app.get('/' + table + '/env', module.getEnv);
-        app.get('/' + table + '/src', module.getSrc);
-        app.get('/' + table + '/test', module.getTest);
+        app.post('/' + pps, table.postRun);
+        app.get('/'  + pps + '/env' , table.getEnv);
+        app.get('/'  + pps + '/src' , table.getSrc);
+        app.get('/'  + pps + '/test', table.getTest);
 
       } catch (err) {
-        console.log('Invalid XML document: ' + openTable + " " + err);
+        console.log('Invalid XML document: ' + file + " " + err);
       }
-    })
+    });
   });
 
-  app.get('/env', function(req, res) {
-    res.send(environment.join('\n'));
-  });
+  var yqlIndex = yql.index(settings, tables);
+  app.get('/', yqlIndex.getIndex);
+  app.get('/env', yqlIndex.getEnv);
+
 }).run();
 
 http.createServer(app).listen(app.get('port'), function(){

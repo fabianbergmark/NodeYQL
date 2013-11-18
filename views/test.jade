@@ -1,0 +1,68 @@
+extends layout
+
+block content
+  div.container
+    h1 Test cases
+    table.table.table-hover.table-bordered#tests
+      thead
+        th Test case
+        th
+          a#runall Run all
+        th Pass
+      tbody
+        each testcase in testcases
+          tr.test(data-api='#{testcase.run}')
+            td
+              a(href='#{testcase.route}') #{testcase.name}
+            td
+              a.run run
+            td
+              span.glyphicon.pass
+        tr#summary
+          td Summary:
+          td
+          td#result
+   script(type='text/javascript').
+     var total  = 0;
+     var passed = 0;
+     var summary = $('#summary #result');
+     function run(url, callback) {
+       $.ajax({
+         "type": "GET",
+         "dataType": "json",
+         "url": url,
+         "success": callback
+       });
+     }
+     function runTest(row) {
+       var api = row.data('api');
+       var pass = row.find('.pass');
+       run(api, function(result) {
+         total++;
+         if (result.pass) {
+           passed++;
+           pass.addClass('glyphicon-ok');
+         } else {
+           pass.addClass('glyphicon-ban-circle');
+         }
+         summary.html(passed + '/' + total + ' passed');
+       });
+     }
+     function reset() {
+       total = 0;
+       passed = 0;
+       $('#tests').find('.test').each(function(i, test) {
+          var pass = $(test).find('.pass');
+          pass.removeClass('glyphicon-ok')
+              .removeClass('glyphicon-ban-circle');
+       });
+     }
+     $('.run').click(function(e) {
+       runTest($(this).parent().parent());
+     });
+     $('#runall').click(function(e) {
+       reset();
+       $('#tests').find('.test').each(function(i, test) {
+         runTest($(test));
+       });
+     });
