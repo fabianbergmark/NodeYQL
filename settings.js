@@ -3,7 +3,7 @@
  */
 
 exports.port =
-  { "internal": 3000,
+  { "internal": 3002,
     "external": 80 };
 exports.url = 'http://83.177.167.87:' + exports.port.external;
 

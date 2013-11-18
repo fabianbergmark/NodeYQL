@@ -13,8 +13,9 @@ var express = require('express')
   , walk = require('./helpers/walk')
   , yql  = { "table": require('./routes/yql/table'),
              "index":   require('./routes/yql') }
-  , test = { "testcase": require('./routes/test/testcase'),
-             "index": require('./routes/test') };
+  , test = { "yql": { "testcase": require('./routes/test/yql/testcase'),
+                      "index": require('./routes/test/yql') },
+             "api": { "index": require('./routes/test/api') } };
 
 var app = express();
 
@@ -41,7 +42,7 @@ fibers(function() {
   var fiber = fibers.current;
 
   walk.walk(
-    './tests',
+    './tests/yql',
     function (err, files) {
       fiber.run(files);
     });
@@ -60,23 +61,49 @@ fibers(function() {
   files.forEach(function(file) {
 
     var js  = require(file)(settings).js;
-    var rel = path.relative('tests', file);
+    var rel = path.relative('tests/runtime', file);
     var pps = path.basename(rel, '.js');
-    var testcase = require('./routes/test/testcase')(settings, pps, js);
-    delete require.cache[require.resolve('./routes/test/testcase')];
+    var testcase = require('./routes/test/yql/testcase')(settings, pps, js);
+    delete require.cache[require.resolve('./routes/test/yql/testcase')];
 
-    app.get('/test/' + pps, testcase.getRun);
-    app.get('/test/' + pps + '/env', testcase.getEnv);
-    app.get('/test/' + pps + '/src', testcase.getSrc);
-    app.get('/test/' + pps + '/desc', testcase.getDesc);
+    app.get('/test/yql/' + pps, testcase.getRun);
+    app.get('/test/yql/' + pps + '/env', testcase.getEnv);
+    app.get('/test/yql/' + pps + '/src', testcase.getSrc);
+    app.get('/test/yql/' + pps + '/desc', testcase.getDesc);
 
-    app.get('/api/test/' + pps, testcase.getApiRun);
+    app.get('/test/yql/api/' + pps, testcase.getApiRun);
 
   });
 
-  var testIndex = test.index(settings, files);
-  app.get('/test', testIndex.getIndex);
-  app.get('/test/data/json', testIndex.getJSONData);
+  var testYQLIndex = test.yql.index(settings, files);
+  app.get('/test/yql', testYQLIndex.getIndex);
+
+  walk.walk(
+    'routes/test/api',
+    function(err, files) {
+      fiber.run(files);
+    });
+
+  var files = fibers.yield();
+
+  files.forEach(function(file) {
+
+    var rel = path.relative('routes/test/api', file);
+    var pps = path.basename(rel, '.js');
+    var url = '/test/api/' + pps;
+    var api = require(file)(settings, url);
+
+    try { app.get(url + '/run', api.get); } catch (e) {};
+    try { app.post(url + '/run', api.post); } catch (e) {};
+
+    app.get(url + '/yql/env', api.yql.getEnv);
+    app.get(url + '/yql/src', api.yql.getSrc);
+    app.get(url + '/yql/desc', api.yql.getDesc);
+  });
+
+  var testAPIIndex = test.api.index(settings, files);
+  app.get('/test/api', testAPIIndex.getIndex);
+  app.get('/test/api/env', testAPIIndex.getEnv);
 
   walk.walk(
     'yql-tables',
@@ -111,6 +138,7 @@ fibers(function() {
         app.get('/'  + pps + '/env' , table.getEnv);
         app.get('/'  + pps + '/src' , table.getSrc);
         app.get('/'  + pps + '/test', table.getTest);
+        app.get('/'  + pps + '/schema', table.getSchema);
 
       } catch (err) {
         console.log('Invalid XML document: ' + file + " " + err);

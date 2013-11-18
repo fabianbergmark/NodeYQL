@@ -58,10 +58,16 @@ module.exports = function(settings, testcase, js) {
     var local = executeLocal();
     var remote = executeRemote();
 
-    var diff = jsDiff.diffLines(
-      JSON.stringify(local, null, 2),
-      JSON.stringify(remote, null, 2));
-    var pass = !diff.some(function(d) {return d.added || d.removed; });
+    var diff;
+    var pass = false;
+
+    if (local.result !== undefined && remote.result !== undefined) {
+      diff = jsDiff.diffLines(
+        JSON.stringify(local.result, null, 2),
+        JSON.stringify(remote.result, null, 2));
+
+      pass = !diff.some(function(d) {return d.added || d.removed; });
+    }
 
     return { "local": local,
              "remote": remote,

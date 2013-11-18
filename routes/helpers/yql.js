@@ -42,7 +42,7 @@ module.exports = function(settings, table, xml, select) {
         var ecma = transform.ecma(global);
         vm.runInContext(ecma, context);
       } catch (err) {
-        console.log("Error in table global js: " + err);
+        return { 'error': err.message };
       }
     }
 
@@ -62,9 +62,9 @@ module.exports = function(settings, table, xml, select) {
         var result =
             { "result": results };
 
-        return YQLify(result);
+        return { 'result': YQLify(result) };
       } catch (err) {
-        console.log("Error in table js: " + err);
+        return { 'error': err.message };
       }
     } else {
       js =
@@ -76,9 +76,9 @@ module.exports = function(settings, table, xml, select) {
         var result =
           { "result": results };
 
-        return YQLify(result);
+        return { 'result': YQLify(result) };
       } catch (err) {
-        console.log("Error in table js: " + err);
+        return { 'error': err.message };
       }
     }
   }

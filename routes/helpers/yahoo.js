@@ -14,16 +14,22 @@ module.exports = function(settings) {
       + '?q=' + query
       + '&format=json'
       + (env ? '&env=' + env : '')
+      + '&debug=true'
+      + '&diagnostics=true';
     request(
       { "method": "GET",
         "uri": url },
       function(err, resp, body) {
-        if (err) {
-          fiber.run(null);
-        } else {
+        if (!err && (resp.statusCode == 200 || resp.statusCode == 400)) {
           body = JSON.parse(body);
-          fiber.run(body.query.results);
-        }
+          if (body.error) {
+            fiber.run({ 'error': body.error });
+          } else if (body.query)
+            fiber.run({ 'result': body.query.results });
+          else
+            fiber.run({ 'error': 'Invalid response' });
+        } else
+          fiber.run({ 'error': err });
       });
 
     return fibers.yield();

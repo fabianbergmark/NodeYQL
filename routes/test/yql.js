@@ -13,22 +13,14 @@ module.exports = function(settings, files) {
       var rel = path.relative('tests', file);
       var pps = path.basename(rel, '.js');
       var name = pps;
-      var api = '/api/test/' + pps;
-      var route = '/test/' + pps;
+      var api = '/test/yql/api/' + pps;
+      var route = '/test/yql/' + pps;
       return { 'route': route,
                'name': name,
                'run': api };
     });
 
     res.render('test', { 'testcases': testcases });
-  }
-
-  exports.getJSONData = function(req, res) {
-    fs.readFile(
-      'routes/helpers/example.json',
-      function (err, data) {
-        res.send(data.toString());
-      });
   }
 
   return exports;

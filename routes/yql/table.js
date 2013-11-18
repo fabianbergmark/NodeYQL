@@ -5,7 +5,8 @@
 var fibers = require('fibers')
   , xpath = require('xpath');
 
-var yqlGenerator = require('../helpers/yql');
+var yqlGenerator = require('../helpers/yql')
+  , schema       = require('../helpers/json/schema');
 
 module.exports = function(settings, table, xml) {
 
@@ -39,6 +40,15 @@ module.exports = function(settings, table, xml) {
     }).run();
   }
 
+  exports.getSchema = function(req, res) {
+
+    fibers.run(function() {
+      var results = test();
+      var schema = schemafy(results);
+      res.send(schema);
+    });
+  }
+
   exports.getEnv = function(req, res) {
     res.send(environment());
   }
@@ -68,7 +78,7 @@ module.exports = function(settings, table, xml) {
         }
         return run(vars);
       } else {
-        return "No sample query";
+        throw "No sample query";
       }
     }
   }
