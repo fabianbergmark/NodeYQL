@@ -9,14 +9,16 @@ var transform = require('./transform');
 
 module.exports = function(settings, table, xml, select) {
 
+  console.log(select.toString());
+
   var y = require('./yql/y')(settings, table, select)
     , rest = require('./yql/rest')(settings, table, select);
 
-  exports.run = function(vars) {
+  exports.run = function(vars, sid) {
     var env = {};
-    env.response = { "object": {} };;
-    env.request = rest.create(vars);
-    env.y = y.create(env.request);
+    env.response = { "object": {} };
+    env.request = rest.create(vars, sid);
+    env.y = y.create(env.request, sid);
 
     var variables = xpath.select('//key[@paramType=\'variable\']', select);
     variables.forEach(function(variable) {
@@ -59,10 +61,8 @@ module.exports = function(settings, table, xml, select) {
         vm.runInContext(ecma, context);
         var results = env.response.object;
         results = JSON.parse(JSON.stringify(results));
-        var result =
-            { "result": results };
 
-        return { 'result': YQLify(result) };
+        return { 'result': YQLify(results) };
       } catch (err) {
         return { 'error': err.message };
       }
@@ -73,37 +73,40 @@ module.exports = function(settings, table, xml, select) {
         vm.runInContext(js, context);
         var results = env.response.object;
         results = JSON.parse(JSON.stringify(results));
-        var result =
-          { "result": results };
-
-        return { 'result': YQLify(result) };
+        return { 'result': YQLify(results) };
       } catch (err) {
         return { 'error': err.message };
       }
     }
   }
 
-  function YQLify(result) {
+  function YQLify(result, level) {
+    if (typeof level === 'undefined')
+      level = 0;
     if (result instanceof Array ) {
       if (result.length == 0)
         result = null;
       else if (result.length == 1)
-        result = YQLify(result[0]);
+        result = YQLify(result[0], level+1);
       else {
         for (var i = 0; i < result.length; ++i)
-          result[i] = YQLify(result[i]);
+          result[i] = YQLify(result[i], level+1);
       }
     } else if (typeof result === 'object') {
       for(var key in result) {
         var val = result[key];
-        val = YQLify(val);
+        val = YQLify(val, level+1);
         if (val == null)
           delete result[key]
         else
           result[key] = val;
       }
     } else if (typeof result === 'number') {
-      result = "" + result;
+      result = '' + result;
+      if (level == 2) {
+        if (Math.floor(result) == result)
+          result += '.0';
+      }
     } else if (typeof result === 'boolean')
       result = "" + result;
     return result;

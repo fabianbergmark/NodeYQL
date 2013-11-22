@@ -3,7 +3,8 @@
  */
 
 var fibers = require('fibers')
-  , xpath = require('xpath');
+  , xpath = require('xpath')
+  , xmldom = require('xmldom').DOMImplementation;
 
 var yqlGenerator = require('../helpers/yql')
   , schema       = require('../helpers/json/schema');
@@ -18,13 +19,83 @@ module.exports = function(settings, table, xml) {
     res.send(xml.toString());
   }
 
+  exports.getRun = function(req, res) {
+
+    var author = xpath.select('//author', xml);
+    author = author.length > 0 ?
+      author[0].firstChild.toString() :
+      '';
+
+    var api = '/api/' + table.replace(/\./g, '/');
+    var action = '/' + table.replace(/\./g, '/');
+
+    var selects = xpath.select('//select', xml);
+
+    var forms = selects.map(function(select) {
+
+      var doc = new xmldom().createDocument();
+      doc.appendChild(select.cloneNode(true));
+      var keys = xpath.select('//key', doc);
+
+      var fields = keys.map(function(key) {
+        var id   = key.getAttribute('id');
+        var def  = key.getAttribute('default');
+        var req  = key.getAttribute('required');
+        req = req == 'true' ? true : false;
+        var xs_type = key.getAttribute('type');
+
+        var type;
+        switch (xs_type) {
+        case 'xs:string':
+          type = 'text';
+          break;
+        default:
+          console.log('UNKNOWN TYPE: ' + xs_type);
+          break;
+        }
+
+        return { 'id': id,
+                 'type': type,
+                 'default': def,
+                 'required': req };
+      });
+
+      return { 'fields': fields };
+    });
+
+    res.render('yql/table',
+               { 'name': table,
+                 'api': api,
+                 'action': action,
+                 'author': author,
+                 'forms': forms });
+  }
+
   exports.postRun = function(req, res) {
+
+    var sid = req.sessionID;
 
     fibers(function() {
       var post = req.body;
 
       try {
-        var result = run(post);
+        var result = run(post, sid);
+        res.send(result);
+      } catch (err) {
+        res.send(err);
+      }
+    }).run();
+  }
+
+  exports.postApiRun = function(req, res) {
+
+    var sid = req.sessionID;
+
+    fibers(function() {
+      var post = req.body;
+
+      try {
+        var result = run(post, sid);
         res.send(result);
       } catch (err) {
         res.send(err);
@@ -34,8 +105,10 @@ module.exports = function(settings, table, xml) {
 
   exports.getTest = function(req, res) {
 
+    var sid = req.sessionID;
+
     fibers(function() {
-      var results = test();
+      var results = test(sid);
       res.send(results);
     }).run();
   }
@@ -59,7 +132,7 @@ module.exports = function(settings, table, xml) {
 
   exports.environment = environment;
 
-  function test() {
+  function test(sid) {
 
     var samples = xpath.select('//sampleQuery', xml);
 
@@ -85,7 +158,7 @@ module.exports = function(settings, table, xml) {
 
   exports.test = test;
 
-  function run(vars) {
+  function run(vars, sid) {
 
     var selects = xpath.select('//select', xml);
 
@@ -99,9 +172,12 @@ module.exports = function(settings, table, xml) {
 
     selects.some(function(select) {
 
-      var yql = yqlGenerator(settings, table, xml, select);
+      var doc = new xmldom().createDocument();
+      doc.appendChild(select.cloneNode(true));
 
-      var keys = xpath.select('//key', select);
+      var yql = yqlGenerator(settings, table, xml, doc);
+
+      var keys = xpath.select('//key', doc);
 
       var missing = keys.some(function(key) {
         var id       = key.getAttribute('id')
@@ -130,7 +206,7 @@ module.exports = function(settings, table, xml) {
       if (missing)
         return false;
 
-      response = yql.run(env);
+      response = yql.run(env, sid);
       return true;
     });
     return response;

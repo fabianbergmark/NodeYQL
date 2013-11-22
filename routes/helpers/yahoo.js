@@ -20,16 +20,19 @@ module.exports = function(settings) {
       { "method": "GET",
         "uri": url },
       function(err, resp, body) {
+        var response = {};
+        response.data = body;
         if (!err && (resp.statusCode == 200 || resp.statusCode == 400)) {
           body = JSON.parse(body);
           if (body.error) {
-            fiber.run({ 'error': body.error });
+            response.error = body.error;
           } else if (body.query)
-            fiber.run({ 'result': body.query.results });
+            response.result = body.query.results;
           else
-            fiber.run({ 'error': 'Invalid response' });
+            response.error =  'Invalid response';
         } else
-          fiber.run({ 'error': err });
+          response.error = err;
+        fiber.run(response);
       });
 
     return fibers.yield();

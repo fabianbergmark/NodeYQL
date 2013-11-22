@@ -2,10 +2,6 @@
  * Create YQL JS environment y object.
  */
 
-var cache = require('./cache')
-  , crypto = require('./crypto')
-  , date = require('./date');
-
 var vm = require('vm')
   , zlib = require('zlib')
   , stream = require('stream')
@@ -16,14 +12,19 @@ var vm = require('vm')
 
 module.exports = function(settings, table, select) {
 
-  exports.create = function(restObj) {
+  var cache = require('./cache')(settings)
+    , crypto = require('./crypto')(settings)
+    , date = require('./date')(settings)
+
+
+  exports.create = function(restObj, sid) {
 
     var name = table.replace(/\//g, '.');
 
     var threads = [];
 
     var y = {
-      "cache": cache.create(),
+      "cache": cache.create(sid),
       "context": {
         "host" : settings.url,
         "table": name

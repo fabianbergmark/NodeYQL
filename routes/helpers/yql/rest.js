@@ -145,6 +145,7 @@ module.exports = function(settings, table, select) {
       "queryParms": "",
       "matrixParams": {},
       "accept": accept,
+      "contentType": contentType,
       "decompress": decompress,
       "del": del,
       "fallbackCharset": fallbackCharset,
@@ -152,6 +153,7 @@ module.exports = function(settings, table, select) {
       "forceCharset": forceCharset,
       "get": get,
       "head": head,
+      "header": header,
       "jsonCompat": jsonCompat,
       "matrix": matrix,
       "path": path,
@@ -172,7 +174,7 @@ module.exports = function(settings, table, select) {
     }
 
     function decompress(bool) {
-
+      return rest;
     }
 
     function del() {
@@ -204,15 +206,15 @@ module.exports = function(settings, table, select) {
     }
 
     function fallbackCharset(charsets) {
-
+      return rest;
     }
 
     function filterChars(filters) {
-
+      return rest;
     }
 
     function forceCharset(charsets) {
-
+      return rest;
     }
 
     function get() {
@@ -220,6 +222,8 @@ module.exports = function(settings, table, select) {
         "response": {}};
 
       var fiber = fibers.current;
+
+      console.log("Url: " + rest.url);
 
       request(
         { "method"  : "GET",
@@ -282,6 +286,7 @@ module.exports = function(settings, table, select) {
     }
 
     function matrix(name, value) {
+      rest.url += ';' + name + '=' + value;
       return rest;
     }
 
@@ -300,7 +305,7 @@ module.exports = function(settings, table, select) {
         { "method"  : "POST",
           "uri"     : rest.url,
           "headers" : rest.headers,
-          "body"    : content },
+          "body"    : JSON.stringify(content) },
         function(err, resp, body) {
           result.url = rest.url;
           if (err) {
@@ -329,7 +334,7 @@ module.exports = function(settings, table, select) {
         { "method"  : "PUT",
           "uri"     : rest.url,
           "headers" : rest.headers,
-          "body"    : content },
+          "body"    : JSON.stringify(content) },
         function(err, resp, body) {
           if (err) {
             if (err.code == 'ETIMEDOUT')
@@ -350,7 +355,7 @@ module.exports = function(settings, table, select) {
     function query(key, value) {
 
       var keys = {};
-      if (!key instanceof Array)
+      if (!(key instanceof Array))
         keys[key] = value;
       else
         keys = key;
@@ -360,7 +365,7 @@ module.exports = function(settings, table, select) {
         querys[key] = val;
       }
 
-      rest.url = buildUrl(baseUrl, querys);
+      rest.url = buildUrl(rest.url, querys);
       return rest;
     }
 

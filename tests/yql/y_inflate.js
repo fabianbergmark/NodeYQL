@@ -1,7 +1,7 @@
 module.exports = function(settings) {
 
   exports.js =
-    "var url = '" + settings.url +  "/test/data';\
+    "var url = '" + settings.url +  "/test/data/json';\
 var data = y.rest(url).get().response;\
 var v1   = y.deflate(data, 1);\
 var r    = y.inflate(v1);\

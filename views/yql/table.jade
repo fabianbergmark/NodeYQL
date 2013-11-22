@@ -1,0 +1,36 @@
+extends ../layout
+
+block content
+  div.container
+    h1 #{name} - #{author}
+    each form in forms
+      form(action='#{action}', method='POST', data-api='#{api}').form-horizontal.form
+        each field in form.fields
+          div.form-group
+            label.col-sm-2 #{field.id}
+            div.col-sm-10
+              input(type='#{field.type}', name='#{field.id}', placeholder='#{field.default}', required='#{field.required}').form-control
+        div.form-group
+          div.col-sm-offset-2.col-sm-10
+            button(type='submit').btn.btn-default Run
+      div.well.result.hidden
+  script(type='text/javascript').
+    $(function() {
+      $('.form').each(function(i, form) {
+        form = $(form);
+        var result = form.next('.result');
+        $(form).submit(function(event) {
+          var data = form.serialize();
+          event.preventDefault();
+          $.ajax({
+            'url': form.data('api'),
+            'data': data,
+            'method': 'POST',
+            'success': function(data) {
+              result.html(JSON.stringify(data, null, 2));
+              result.removeClass('hidden');
+            }
+          });
+        });
+      });
+    });

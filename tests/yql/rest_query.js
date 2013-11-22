@@ -1,9 +1,10 @@
 module.exports = function(settings) {
 
   exports.js =
-    "var v1 = 'key';\
+    "var url = '" + settings.url +  "/test/data';\
+var v1 = 'key';\
 var v2 = 'val';\
-var r = y.request.query(v1, v2);\
+var r = y.rest(url).query(v1, v2).get().url;\
 response.object = save(r, v1, v2);";
 
   return exports;

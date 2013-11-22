@@ -22,47 +22,53 @@ block content
           td Summary:
           td
           td#result
-   script(type='text/javascript').
-     var total  = 0;
-     var passed = 0;
-     var summary = $('#summary #result');
-     function run(url, callback) {
-       $.ajax({
-         "type": "GET",
-         "dataType": "json",
-         "url": url,
-         "success": callback
-       });
-     }
-     function runTest(row) {
-       var api = row.data('api');
-       var pass = row.find('.pass');
-       run(api, function(result) {
-         total++;
-         if (result.pass) {
-           passed++;
-           pass.addClass('glyphicon-ok');
-         } else {
-           pass.addClass('glyphicon-ban-circle');
-         }
-         summary.html(passed + '/' + total + ' passed');
-       });
-     }
-     function reset() {
-       total = 0;
-       passed = 0;
-       $('#tests').find('.test').each(function(i, test) {
-          var pass = $(test).find('.pass');
-          pass.removeClass('glyphicon-ok')
-              .removeClass('glyphicon-ban-circle');
-       });
-     }
-     $('.run').click(function(e) {
-       runTest($(this).parent().parent());
+ script(type='text/javascript').
+   var total  = 0;
+   var passed = 0;
+   var summary = $('#summary #result');
+   function run(url, callback) {
+     $.ajax({
+       "type": "GET",
+       "dataType": "json",
+       "url": url,
+       "success": callback
      });
-     $('#runall').click(function(e) {
-       reset();
-       $('#tests').find('.test').each(function(i, test) {
-         runTest($(test));
-       });
+   }
+   function runTest(row) {
+     var api = row.data('api');
+     var pass = row.find('.pass');
+     run(api, function(result) {
+       total++;
+       if (result.result.pass) {
+         passed++;
+         pass
+         .removeClass('glyphicon-ok')
+         .removeClass('glyphicon-ban-circle')
+         .addClass('glyphicon-ok');
+       } else {
+         pass
+         .removeClass('glyphicon-ok')
+         .removeClass('glyphicon-ban-circle')
+         .addClass('glyphicon-ban-circle');
+       }
+       summary.html(passed + '/' + total + ' passed');
      });
+   }
+   function reset() {
+     total = 0;
+     passed = 0;
+     $('#tests').find('.test').each(function(i, test) {
+        var pass = $(test).find('.pass');
+        pass.removeClass('glyphicon-ok')
+            .removeClass('glyphicon-ban-circle');
+     });
+   }
+   $('.run').click(function(e) {
+     runTest($(this).parent().parent());
+   });
+   $('#runall').click(function(e) {
+     reset();
+     $('#tests').find('.test').each(function(i, test) {
+       runTest($(test));
+     });
+   });

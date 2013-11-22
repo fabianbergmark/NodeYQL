@@ -4,7 +4,7 @@ block content
   div.container
     h1 Testcase: #{testcase}
     h2 Pass: 
-      if pass
+      if result.pass
         span.glyphicon.glyphicon-ok
       else
         span.glyphicon.glyphicon-ban-circle
@@ -15,5 +15,7 @@ block content
     pre #{result.local}
     h3 Yahoo YQL result
     pre #{result.remote}
+    h3 Yahoo YQL response
+    pre #{result.yahoo}
     h3 Diff
     pre #{result.diff}

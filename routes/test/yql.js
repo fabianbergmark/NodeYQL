@@ -3,6 +3,8 @@
  */
 
 var fibers = require('fibers')
+  , fs = require('fs')
+  , iconv = require('iconv').Iconv
   , path   = require('path');
 
 module.exports = function(settings, files) {
@@ -15,6 +17,7 @@ module.exports = function(settings, files) {
       var name = pps;
       var api = '/test/yql/api/' + pps;
       var route = '/test/yql/' + pps;
+
       return { 'route': route,
                'name': name,
                'run': api };

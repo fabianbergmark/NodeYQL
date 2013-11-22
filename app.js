@@ -23,12 +23,13 @@ app.configure(function() {
   app.set('port', process.env.PORT || settings.port.internal);
   app.set('views', __dirname + '/views');
   app.set('view engine', 'jade');
+  app.use(express.compress());
   app.use(express.favicon());
   app.use(express.logger('dev'));
   app.use(express.bodyParser());
   app.use(express.methodOverride());
-  app.use(express.cookieParser('your secret here'));
-  app.use(express.session());
+  app.use(express.cookieParser(settings.cookie.secret));
+  app.use(express.session({ 'secret': settings.session.secret }));
   app.use(app.router);
   app.use(express.static(path.join(__dirname, 'public')));
 });
@@ -55,7 +56,7 @@ fibers(function() {
   }
 
   var files = files.filter(function(file) {
-    return path.extname(file) === '.js';
+    return path.extname(file) === '.js' && path.basename(file).charAt(0) !== '.';
   });
 
   files.forEach(function(file) {
@@ -119,22 +120,22 @@ fibers(function() {
   }
 
   var files = files.filter(function(file) {
-    return path.extname(file) === '.xml';
+    return path.extname(file) === '.xml' && path.basename(file).charAt(0) !== '.';
   });
-
-  var tables = [];
 
   files.forEach(function(file) {
     fs.readFile(file, function(err, data) {
       try {
         var xml = new DOMParser().parseFromString(data.toString());
-        rel = path.relative('yql-tables', file);
-        pps = path.basename(rel, '.xml').replace(/\./g, '/');
+        var rel = path.relative('yql-tables', file);
+        var name = path.basename(rel, '.xml')
+        var pps = name.replace(/\./g, '/');
 
-        var table = yql.table(settings, rel, xml);
-        tables.push(table);
+        var table = yql.table(settings, name, xml);
 
+        app.get('/' + pps, table.getRun);
         app.post('/' + pps, table.postRun);
+        app.post('/api/' + pps, table.postApiRun);
         app.get('/'  + pps + '/env' , table.getEnv);
         app.get('/'  + pps + '/src' , table.getSrc);
         app.get('/'  + pps + '/test', table.getTest);
@@ -146,7 +147,7 @@ fibers(function() {
     });
   });
 
-  var yqlIndex = yql.index(settings, tables);
+  var yqlIndex = yql.index(settings, files);
   app.get('/', yqlIndex.getIndex);
   app.get('/env', yqlIndex.getEnv);
 

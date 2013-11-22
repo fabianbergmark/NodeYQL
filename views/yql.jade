@@ -1,0 +1,19 @@
+extends layout
+
+block content
+  div.container
+    h1 OpenTables
+    table.table.table-hover.table-bordered#tables
+      thead
+        th OpenTable
+        th
+        th
+      tbody
+        each table in tables
+          tr
+            td
+              a(href='#{table.route.index}') #{table.name}
+            td
+              a(href='#{table.route.source}') src
+            td
+              a(href='#{table.route.sample}') sample
