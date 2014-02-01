@@ -8,6 +8,7 @@ block content
         th OpenTable
         th
         th
+        th
       tbody
         each table in tables
           tr
@@ -17,3 +18,5 @@ block content
               a(href='#{table.route.source}') src
             td
               a(href='#{table.route.sample}') sample
+            td
+              a(href='#{table.route.schema}') schema

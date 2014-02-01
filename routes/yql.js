@@ -14,11 +14,13 @@ module.exports = function(settings, files) {
     var pps = table.replace(/\./g, '/');
     var index  = '/' + pps;
     var source = '/' + pps + '/src';
-    var sample = '/' + pps + '/test';
+    var sample = '/' + pps + '/sample';
+    var schema = '/' + pps + '/schema';
 
     var route = { 'index': index,
                   'source': source,
-                  'sample': sample };
+                  'sample': sample,
+                  'schema': schema };
 
     return { 'name': table,
              'route': route };

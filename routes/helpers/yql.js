@@ -9,8 +9,6 @@ var transform = require('./transform');
 
 module.exports = function(settings, table, xml, select) {
 
-  console.log(select.toString());
-
   var y = require('./yql/y')(settings, table, select)
     , rest = require('./yql/rest')(settings, table, select);
 
@@ -60,9 +58,9 @@ module.exports = function(settings, table, xml, select) {
         var ecma = transform.ecma(js);
         vm.runInContext(ecma, context);
         var results = env.response.object;
-        results = JSON.parse(JSON.stringify(results));
-
-        return { 'result': YQLify(results) };
+        if (typeof results == "string")
+          results = JSON.parse(results);
+        return { 'result': results };
       } catch (err) {
         return { 'error': err.message };
       }
@@ -72,8 +70,9 @@ module.exports = function(settings, table, xml, select) {
       try {
         vm.runInContext(js, context);
         var results = env.response.object;
-        results = JSON.parse(JSON.stringify(results));
-        return { 'result': YQLify(results) };
+        if (typeof results == "string")
+          results = JSON.parse(results);
+        return { 'result': results };
       } catch (err) {
         return { 'error': err.message };
       }

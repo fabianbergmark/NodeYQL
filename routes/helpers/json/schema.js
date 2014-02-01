@@ -3,7 +3,7 @@
  */
 
 function schemafy(json) {
-
+  var schema = {};
   if (json === null) {
     schema.type = "null";
   } else if (Array.isArray(json)) {
@@ -12,7 +12,6 @@ function schemafy(json) {
       schema.items = schemafy(json[0]);
   } else {
     var type = typeof json;
-    var schema = {};
     switch (type) {
     case 'boolean':
       schema.type = 'boolean';
@@ -33,4 +32,7 @@ function schemafy(json) {
       break;
     }
   }
+  return schema;
 }
+
+exports.schemafy = schemafy;

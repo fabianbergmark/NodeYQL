@@ -103,23 +103,26 @@ module.exports = function(settings, table, xml) {
     }).run();
   }
 
-  exports.getTest = function(req, res) {
+  exports.getSample = function(req, res) {
 
     var sid = req.sessionID;
 
     fibers(function() {
-      var results = test(sid);
+      var results = sample(sid);
       res.send(results);
     }).run();
   }
 
   exports.getSchema = function(req, res) {
 
-    fibers.run(function() {
-      var results = test();
-      var schema = schemafy(results);
-      res.send(schema);
-    });
+    var sid = req.sessionID;
+
+    fibers(function() {
+      var results = sample(sid);
+      var s = schema.schemafy(results);
+      console.log(s);
+      res.send(s);
+    }).run();
   }
 
   exports.getEnv = function(req, res) {
@@ -132,31 +135,28 @@ module.exports = function(settings, table, xml) {
 
   exports.environment = environment;
 
-  function test(sid) {
+  function sample(sid) {
 
     var samples = xpath.select('//sampleQuery', xml);
 
     if (samples.length > 0) {
       var vars = {};
-      var sample = samples[0].toString().replace(/<sampleQuery>\s*(.*?)\s*<\/sampleQuery>/g, '$1') + ";";
-      var regexp =
-        /.*?where\s+(.*?)\s*=\s*['"]?(.*?)['"]?(?:\s+and\s+(.*?)\s*=\s*['"]?(.*?)['"]?)*;.*?/gi;
-
-      var vs = regexp.exec(sample);
-      if (vs) {
-        for (var i = 1; i < vs.length-1; i+=2) {
-          var k = vs[i];
-          var v = vs[i+1];
-          vars[k] = v;
+      var sample = samples[0].toString().replace(/<sampleQuery>\s*(.*?)\s*<\/sampleQuery>/gi, '$1');
+      var first =
+        /where\s+([^\s'"]*)\s*=\s*['"]?([^\s'"]*)['"]?/gi;
+      if (vs = first.exec(sample)) {
+        vars[vs[1]] = vs[2];
+        var rest = /and\s+([^\s'"]*)\s*=\s*['"]?([^\s'"]*)['"]?/gi
+        while (m = rest.exec(sample)) {
+          vars[m[1]] = m[2];
         }
-        return run(vars);
-      } else {
-        throw "No sample query";
+        console.log(vars);
+        return run(vars, sid);
       }
     }
   }
 
-  exports.test = test;
+  exports.sample = sample;
 
   function run(vars, sid) {
 

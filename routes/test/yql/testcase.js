@@ -15,9 +15,6 @@ module.exports = function(settings, testcase, js, comp) {
   var helper = require('../../helpers/test')
   delete require.cache[require.resolve('../../helpers/test')];
 
-  var test = require('../helpers/test')(settings, testcase, xml, comp);
-  delete require.cache[require.resolve('../helpers/test')];
-
   exports.js = js;
   exports.testcase = testcase;
 

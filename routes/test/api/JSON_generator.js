@@ -41,7 +41,6 @@ module.exports = function(settings, path) {
 
     var schema = post.schema;
     if (schema) {
-      console.log(schema);
       var gen = generator.generate(schema);
       res.send(gen);
     } else

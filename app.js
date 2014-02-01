@@ -138,7 +138,7 @@ fibers(function() {
         app.post('/api/' + pps, table.postApiRun);
         app.get('/'  + pps + '/env' , table.getEnv);
         app.get('/'  + pps + '/src' , table.getSrc);
-        app.get('/'  + pps + '/test', table.getTest);
+        app.get('/'  + pps + '/sample', table.getSample);
         app.get('/'  + pps + '/schema', table.getSchema);
 
       } catch (err) {
