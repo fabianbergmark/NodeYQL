@@ -18,6 +18,8 @@ module.exports = function(settings, table, xml, select) {
     env.request = rest.create(vars, sid);
     env.y = y.create(env.request, sid);
 
+    console.log("Running");
+
     var variables = xpath.select('//key[@paramType=\'variable\']', select);
     variables.forEach(function(variable) {
       var id = variable.getAttribute('id');
@@ -58,8 +60,6 @@ module.exports = function(settings, table, xml, select) {
         var ecma = transform.ecma(js);
         vm.runInContext(ecma, context);
         var results = env.response.object;
-        if (typeof results == "string")
-          results = JSON.parse(results);
         return { 'result': results };
       } catch (err) {
         return { 'error': err.message };
@@ -70,8 +70,6 @@ module.exports = function(settings, table, xml, select) {
       try {
         vm.runInContext(js, context);
         var results = env.response.object;
-        if (typeof results == "string")
-          results = JSON.parse(results);
         return { 'result': results };
       } catch (err) {
         return { 'error': err.message };

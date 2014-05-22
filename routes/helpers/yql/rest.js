@@ -3,8 +3,9 @@
  */
 
 var fibers = require('fibers')
-  , xpath = require('xpath')
-  , request = require('request');
+, xpath = require('xpath')
+, request = require('request')
+, querystring = require('querystring');
 
 module.exports = function(settings, table, select) {
 
@@ -28,7 +29,7 @@ module.exports = function(settings, table, select) {
     var url = xpath.select('//url', select);
     if (url.length > 0 && url[0].firstChild) {
 
-      url = url[0].firstChild.toString();
+      url = url[0].firstChild.toString().trim();
 
       var querys = url.replace(/^.*?\?(.*)/, '$1');
 
@@ -83,27 +84,26 @@ module.exports = function(settings, table, select) {
 
     var url = xpath.select('//url', select);
     if (url.length > 0 && url[0].firstChild) {
-      url = url[0].firstChild.toString();
+      url = url[0].firstChild.toString().trim();
 
       var base = url.replace(/^(.*?)\?.*/, '$1');
 
-      var params = (/{(.*?)}/g).exec(base);
+      var regexp = /{(.*?)}/g;
 
-      if (params) {
-        for (var i = 0; i < params.length; ++i) {
-          var param = params[i];
-          var key = xpath.select('//key[@id=\'' + param +  '\' and @paramType=\'path\']', select);
-          if (key.length > 0) {
-            key = key[0];
+      while (match = regexp.exec(base)) {
+        var param = match[1];
+        var key = xpath.select('//key[@id=\'' + param +  '\' and @paramType=\'path\']', select);
+        if (key.length > 0) {
+          key = key[0];
 
-            var val = "";
-            if (vars[param] !== undefined) {
-              val = vars[param];
-            }
-
-            base = base.replace('{' + param + '}', val);
+          var val = "";
+          if (vars[param] !== undefined) {
+            val = vars[param];
           }
+
+          base = base.replace('{' + param + '}', val);
         }
+
       }
 
       return base;
@@ -160,6 +160,7 @@ module.exports = function(settings, table, select) {
       "post": post,
       "put": put,
       "query": query,
+      "querystring": querystring.stringify,
       "timeout": timeout
     };
 
@@ -193,6 +194,9 @@ module.exports = function(settings, table, select) {
             if (err.code == 'ETIMEDOUT')
               result.timeout = true;
           } else {
+            try {
+              body = JSON.parse(body);
+            } catch (e) { }
             result.response = body;
             result.headers  = resp.headers;
             result.status   = resp.statusCode;
@@ -236,6 +240,9 @@ module.exports = function(settings, table, select) {
             if (err.code == 'ETIMEDOUT')
               result.timeout = true;
           } else {
+            try {
+              body = JSON.parse(body);
+            } catch (e) { }
             result.response = body;
             result.headers = resp.headers;
             result.status = resp.statusCode;
@@ -264,6 +271,9 @@ module.exports = function(settings, table, select) {
             if (err.code == 'ETIMEDOUT')
               result.timeout = true;
           } else {
+            try {
+              body = JSON.parse(body);
+            } catch (e) { }
             result.response = body;
             result.headers = resp.headers;
             result.status = resp.statusCode;
@@ -298,28 +308,28 @@ module.exports = function(settings, table, select) {
     function post(content) {
       var result = {
         "response": {}};
-
       var fiber = fibers.current;
-
       request(
         { "method"  : "POST",
           "uri"     : rest.url,
           "headers" : rest.headers,
-          "body"    : JSON.stringify(content) },
+          "body"    : content },
         function(err, resp, body) {
           result.url = rest.url;
           if (err) {
             if (err.code == 'ETIMEDOUT')
               result.timeout = true;
           } else {
+            try {
+              body = JSON.parse(body);
+            } catch (e) { }
             result.response = body;
             result.headers  = resp.headers;
             result.status   = resp.statusCode;
             result.timeout  = false;
           }
-          fiber.run();
+          setTimeout(function() { fiber.run(); }, 100);
         });
-
       fibers.yield();
       return result;
     }
@@ -340,6 +350,9 @@ module.exports = function(settings, table, select) {
             if (err.code == 'ETIMEDOUT')
               result.timeout = true;
           } else {
+            try {
+              body = JSON.parse(body);
+            } catch (e) { }
             result.response = body;
             result.headers  = resp.headers;
             result.status   = resp.statusCode;

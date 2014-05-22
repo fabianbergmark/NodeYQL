@@ -77,6 +77,7 @@ module.exports = function(settings, table, xml) {
 
     fibers(function() {
       var post = req.body;
+      console.log(post);
 
       try {
         var result = run(post, sid);
@@ -119,9 +120,13 @@ module.exports = function(settings, table, xml) {
 
     fibers(function() {
       var results = sample(sid);
-      var s = schema.schemafy(results);
-      console.log(s);
-      res.send(s);
+      try {
+        var s = schema.schemafy(results);
+        res.send(s);
+      } catch (e) {
+        console.log(e);
+        res.end();
+      }
     }).run();
   }
 
@@ -136,24 +141,24 @@ module.exports = function(settings, table, xml) {
   exports.environment = environment;
 
   function sample(sid) {
-
     var samples = xpath.select('//sampleQuery', xml);
 
     if (samples.length > 0) {
       var vars = {};
-      var sample = samples[0].toString().replace(/<sampleQuery>\s*(.*?)\s*<\/sampleQuery>/gi, '$1');
+      var sample = samples[0].toString().replace(/<sampleQuery>\s*(.*?)\s*<\/sampleQuery>/gi, '$1').trim();
       var first =
-        /where\s+([^\s'"]*)\s*=\s*['"]?([^\s'"]*)['"]?/gi;
+        /where\s+([^\s'"]*)\s*=\s*['"]?([^'"]*)['"]?/gi;
       if (vs = first.exec(sample)) {
         vars[vs[1]] = vs[2];
-        var rest = /and\s+([^\s'"]*)\s*=\s*['"]?([^\s'"]*)['"]?/gi
+        var rest = /and\s+([^\s'"]*)\s*=\s*['"]?([^'"]*)['"]?/gi
         while (m = rest.exec(sample)) {
           vars[m[1]] = m[2];
         }
-        console.log(vars);
-        return run(vars, sid);
       }
-    }
+      console.log(vars);
+      return run(vars, sid);
+    } else
+        console.log("Didn't find sample query");
   }
 
   exports.sample = sample;

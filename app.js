@@ -5,17 +5,17 @@
 var settings = require('./settings');
 
 var express = require('express')
-  , http = require('http')
-  , path = require('path')
-  , fibers = require('fibers')
-  , DOMParser = require('xmldom').DOMParser
-  , fs = require('fs')
-  , walk = require('./helpers/walk')
-  , yql  = { "table": require('./routes/yql/table'),
-             "index":   require('./routes/yql') }
-  , test = { "yql": { "testcase": require('./routes/test/yql/testcase'),
-                      "index": require('./routes/test/yql') },
-             "api": { "index": require('./routes/test/api') } };
+, http = require('http')
+, path = require('path')
+, fibers = require('fibers')
+, DOMParser = require('xmldom').DOMParser
+, fs = require('fs')
+, walk = require('./helpers/walk')
+, yql  = { "table": require('./routes/yql/table'),
+           "index":   require('./routes/yql') }
+, test = { "yql": { "testcase": require('./routes/test/yql/testcase'),
+                    "index": require('./routes/test/yql') },
+           "api": { "index": require('./routes/test/api') } };
 
 var app = express();
 
@@ -107,7 +107,7 @@ fibers(function() {
   app.get('/test/api/env', testAPIIndex.getEnv);
 
   walk.walk(
-    'yql-tables',
+    '../API/yql-tables/limit',
     function(err, files) {
       fiber.run(files);
     });
@@ -123,29 +123,36 @@ fibers(function() {
     return path.extname(file) === '.xml' && path.basename(file).charAt(0) !== '.';
   });
 
-  files.forEach(function(file) {
-    fs.readFile(file, function(err, data) {
-      try {
-        var xml = new DOMParser().parseFromString(data.toString());
-        var rel = path.relative('yql-tables', file);
-        var name = path.basename(rel, '.xml')
-        var pps = name.replace(/\./g, '/');
+  function loadFiles(files) {
+    if (files.length > 0) {
+      var file = files.shift();
 
-        var table = yql.table(settings, name, xml);
+      fs.readFile(file, function(err, data) {
+        try {
+          if (err)
+            throw err;
+          var xml = new DOMParser().parseFromString(data.toString());
+          var rel = path.relative('../API/yql-tables/limit', file);
+          var name = path.basename(rel, '.xml')
+          var pps = name.replace(/\./g, '/');
+          var table = yql.table(settings, name, xml);
 
-        app.get('/' + pps, table.getRun);
-        app.post('/' + pps, table.postRun);
-        app.post('/api/' + pps, table.postApiRun);
-        app.get('/'  + pps + '/env' , table.getEnv);
-        app.get('/'  + pps + '/src' , table.getSrc);
-        app.get('/'  + pps + '/sample', table.getSample);
-        app.get('/'  + pps + '/schema', table.getSchema);
+          app.get('/' + pps, table.getRun);
+          app.post('/' + pps, table.postRun);
+          app.post('/api/' + pps, table.postApiRun);
+          app.get('/'  + pps + '/env' , table.getEnv);
+          app.get('/'  + pps + '/src' , table.getSrc);
+          app.get('/'  + pps + '/sample', table.getSample);
+          app.get('/'  + pps + '/schema', table.getSchema);
+        } catch (err) {
+          console.log('Invalid XML document: ' + file + " " + err);
+        }
+        loadFiles(files);
+      });
+    }
+  }
 
-      } catch (err) {
-        console.log('Invalid XML document: ' + file + " " + err);
-      }
-    });
-  });
+  loadFiles(files);
 
   var yqlIndex = yql.index(settings, files);
   app.get('/', yqlIndex.getIndex);
