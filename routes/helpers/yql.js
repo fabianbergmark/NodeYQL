@@ -32,7 +32,7 @@ module.exports = function(settings, table, xml, select) {
 
     logger.debug('Added scope variables');
 
-    env.fibers  = fibers = require('fibers');
+    env.fibers = require('fibers');
     env.console = console;
 
     var context = vm.createContext(env);

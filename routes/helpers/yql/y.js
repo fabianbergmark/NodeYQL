@@ -138,7 +138,8 @@ module.exports = function(settings, table, select) {
           request(
             { "method"  : "GET",
               "uri"     : restObj.url,
-              "headers" : restObj.headers },
+              "headers" : restObj.headers,
+              "timeout" : 1000 },
             function(err, resp, body) {
               logger.debug('REST GET request callback');
               var result = {};

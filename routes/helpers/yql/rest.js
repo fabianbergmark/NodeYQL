@@ -235,6 +235,7 @@ module.exports = function(settings, table, select) {
         { "method"  : "GET",
           "uri"     : rest.url,
           "headers" : rest.headers,
+          "timeout" : 1000,
           "followRedirect": false },
         function(err, resp, body) {
           logger.debug('GET request callback');
@@ -272,7 +273,8 @@ module.exports = function(settings, table, select) {
       request(
         { "method"  : "HEAD",
           "uri"     : rest.url,
-          "headers" : rest.headers },
+          "headers" : rest.headers,
+          "timeout" : 1000 },
         function(err, resp, body) {
           logger.debug('HEAD request callback');
           result.url = rest.url;
@@ -327,6 +329,7 @@ module.exports = function(settings, table, select) {
         { "method"  : "POST",
           "uri"     : rest.url,
           "headers" : rest.headers,
+          "timeout" : 1000,
           "body"    : content },
         function(err, resp, body) {
           logger.debug('POST request callback');
@@ -364,6 +367,7 @@ module.exports = function(settings, table, select) {
         { "method"  : "PUT",
           "uri"     : rest.url,
           "headers" : rest.headers,
+          "timeout" : 1000,
           "body"    : JSON.stringify(content) },
         function(err, resp, body) {
           logger.debug('PUT request callback');
