@@ -13,12 +13,14 @@ module.exports = function(settings, table, xml, select) {
     , rest = require('./yql/rest')(settings, table, select);
 
   exports.run = function(vars, sid) {
+    logger.debug('Running opentable: ' + table);
+
     var env = {};
     env.response = { "object": {} };
     env.request = rest.create(vars, sid);
     env.y = y.create(env.request, sid);
 
-    console.log("Running");
+    logger.debug('Created environment');
 
     var variables = xpath.select('//key[@paramType=\'variable\']', select);
     variables.forEach(function(variable) {
@@ -28,10 +30,14 @@ module.exports = function(settings, table, xml, select) {
       }
     });
 
+    logger.debug('Added scope variables');
+
     env.fibers  = fibers = require('fibers');
     env.console = console;
 
     var context = vm.createContext(env);
+
+    logger.debug('Created VM context');
 
     var global =
       xpath.select('/table/execute', xml);
@@ -42,8 +48,11 @@ module.exports = function(settings, table, xml, select) {
 
       try {
         var ecma = transform.ecma(global);
+        logger.debug('Transformed global JS');
         vm.runInContext(ecma, context);
+        logger.debug('Executed global JS');
       } catch (err) {
+        logger.error('Error executing global JS', { err: err });
         return { 'error': err.message };
       }
     }
@@ -58,10 +67,13 @@ module.exports = function(settings, table, xml, select) {
 
       try {
         var ecma = transform.ecma(js);
+        logger.debug('Transformed select JS');
         vm.runInContext(ecma, context);
+        logger.debug('Executed select JS');
         var results = env.response.object;
         return { 'result': results };
       } catch (err) {
+        logger.error('Error executing select JS', { err: err });
         return { 'error': err.message };
       }
     } else {
@@ -69,9 +81,11 @@ module.exports = function(settings, table, xml, select) {
         "response.object = request.get().response;";
       try {
         vm.runInContext(js, context);
+        logger.debug('Executed default JS');
         var results = env.response.object;
         return { 'result': results };
       } catch (err) {
+        logger.err('Error executing default JS', { err: err });
         return { 'error': err.message };
       }
     }

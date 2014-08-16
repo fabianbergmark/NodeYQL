@@ -222,12 +222,14 @@ module.exports = function(settings, table, select) {
     }
 
     function get() {
+      logger.debug(
+        'Running GET request',
+        { url: rest.url,
+          headers: rest.headers });
       var result = {
         "response": {}};
 
       var fiber = fibers.current;
-
-      console.log("Url: " + rest.url);
 
       request(
         { "method"  : "GET",
@@ -235,8 +237,10 @@ module.exports = function(settings, table, select) {
           "headers" : rest.headers,
           "followRedirect": false },
         function(err, resp, body) {
+          logger.debug('GET request callback');
           result.url = rest.url;
           if (err) {
+            logger.debug('GET request returned an error', { err: err });
             if (err.code == 'ETIMEDOUT')
               result.timeout = true;
           } else {
@@ -256,6 +260,10 @@ module.exports = function(settings, table, select) {
     }
 
     function head() {
+      logger.debug(
+        'Running HEAD request',
+        { url: rest.url,
+          headers: rest.headers });
       var result = {
         "response": {}};
 
@@ -266,8 +274,10 @@ module.exports = function(settings, table, select) {
           "uri"     : rest.url,
           "headers" : rest.headers },
         function(err, resp, body) {
+          logger.debug('HEAD request callback');
           result.url = rest.url;
           if (err) {
+            logger.debug('GET request returned an error', { err: err });
             if (err.code == 'ETIMEDOUT')
               result.timeout = true;
           } else {
@@ -306,6 +316,10 @@ module.exports = function(settings, table, select) {
     }
 
     function post(content) {
+      logger.debug(
+        'Running POST request',
+        { url: rest.url,
+          headers: rest.headers });
       var result = {
         "response": {}};
       var fiber = fibers.current;
@@ -315,8 +329,10 @@ module.exports = function(settings, table, select) {
           "headers" : rest.headers,
           "body"    : content },
         function(err, resp, body) {
+          logger.debug('POST request callback');
           result.url = rest.url;
           if (err) {
+            logger.debug('POST request returned an error', { err: err });
             if (err.code == 'ETIMEDOUT')
               result.timeout = true;
           } else {
@@ -328,13 +344,17 @@ module.exports = function(settings, table, select) {
             result.status   = resp.statusCode;
             result.timeout  = false;
           }
-          setTimeout(function() { fiber.run(); }, 100);
+          fiber.run();
         });
       fibers.yield();
       return result;
     }
 
     function put(content) {
+      logger.debug(
+        'Running PUT request',
+        { url: rest.url,
+          headers: rest.headers });
       var result = {
         "response": {}};
 
@@ -346,7 +366,9 @@ module.exports = function(settings, table, select) {
           "headers" : rest.headers,
           "body"    : JSON.stringify(content) },
         function(err, resp, body) {
+          logger.debug('PUT request callback');
           if (err) {
+            logger.debug('PUT request returned an error', { err: err });
             if (err.code == 'ETIMEDOUT')
               result.timeout = true;
           } else {

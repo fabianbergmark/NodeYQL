@@ -6,18 +6,19 @@
     "start": "node app"
   },
   "dependencies": {
-    "express": "3.1.0",
-    "jade": "*",
-    "xpath": "0.0.5",
-    "xmldom": "~0.1.16",
-    "xml-literals": "~0.1.0",
-    "uuid-v4": "~0.1.0",
-    "htmltidy": "0.0.6",
-    "request": "~2.27.0",
-    "fibers": "~1.0.1",
-    "diff": "~1.0.7",
     "bufferjs": "~2.0.0",
+    "diff": "~1.0.7",
+    "express": "3.1.0",
+    "fibers": "~1.0.1",
+    "htmltidy": "0.0.6",
     "iconv": "~2.0.7",
-    "sqlite3": "~2.1.19"
+    "jade": "*",
+    "request": "~2.27.0",
+    "sqlite3": "~2.1.19",
+    "uuid-v4": "~0.1.0",
+    "winston": "^0.7.3",
+    "xml-literals": "~0.1.0",
+    "xmldom": "~0.1.16",
+    "xpath": "0.0.5"
   }
 }

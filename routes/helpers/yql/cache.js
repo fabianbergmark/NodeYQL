@@ -7,6 +7,7 @@ var sqlite3 = require('sqlite3');
 module.exports = function(settings) {
 
   var db = new sqlite3.Database(':memory:');
+  logger.debug('Created YQL cache memory database');
 
   db.serialize(function() {
     db.run('CREATE TABLE cache (session VARCHAR(64) UNIQUE, key TEXT NOT NULL, value TEXT NOT NULL, expires DATETIME NOT NULL, UNIQUE (session, key, value) )');

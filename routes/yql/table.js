@@ -77,7 +77,6 @@ module.exports = function(settings, table, xml) {
 
     fibers(function() {
       var post = req.body;
-      console.log(post);
 
       try {
         var result = run(post, sid);
@@ -155,7 +154,7 @@ module.exports = function(settings, table, xml) {
           vars[m[1]] = m[2];
         }
       }
-      console.log(vars);
+
       return run(vars, sid);
     } else
         console.log("Didn't find sample query");
@@ -173,7 +172,7 @@ module.exports = function(settings, table, xml) {
       throw 'No selects';
     }
 
-    var response;
+    var response = null;
 
     selects.some(function(select) {
 
@@ -181,6 +180,7 @@ module.exports = function(settings, table, xml) {
       doc.appendChild(select.cloneNode(true));
 
       var yql = yqlGenerator(settings, table, xml, doc);
+      logger.debug('Generated YQL executor for select');
 
       var keys = xpath.select('//key', doc);
 
@@ -208,13 +208,21 @@ module.exports = function(settings, table, xml) {
         }
       });
 
-      if (missing)
+      if (missing) {
+        logger.warn('Some keys were missing, aborting select execution');
         return false;
+      }
 
       response = yql.run(env, sid);
       return true;
     });
-    return response;
+
+    if (response !== null)
+      return response;
+    else {
+      logger.error('Unable to run any select');
+      throw 'Unable to run any select';
+    }
   }
 
   return exports;

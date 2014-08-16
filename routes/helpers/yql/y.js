@@ -124,6 +124,10 @@ module.exports = function(settings, table, select) {
     }
 
     function rest(url, callback) {
+      logger.debug(
+        'Running REST GET request',
+        { url: url,
+          headers: restObj.headers });
       restObj.url = url;
       if (callback) {
         fibers(function() {
@@ -136,8 +140,10 @@ module.exports = function(settings, table, select) {
               "uri"     : restObj.url,
               "headers" : restObj.headers },
             function(err, resp, body) {
+              logger.debug('REST GET request callback');
               var result = {};
               if (err) {
+                logger.debug('REST GET request returned an error', { err: err });
                 console.log(err);
               } else {
                 result.response = body;

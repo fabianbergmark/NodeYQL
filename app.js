@@ -2,6 +2,13 @@
  * Module dependencies.
  */
 
+var winston = require('winston');
+logger = new (winston.Logger)({
+  transports: [
+    new (winston.transports.Console)(),
+    new (winston.transports.File)({filename: 'yql.log', level: 'debug' }) ]
+});
+
 var settings = require('./settings');
 
 var express = require('express')
@@ -129,8 +136,10 @@ fibers(function() {
 
       fs.readFile(file, function(err, data) {
         try {
-          if (err)
+          if (err) {
+            logger.error('Unable to load opentable', { err: err });
             throw err;
+          }
           var xml = new DOMParser().parseFromString(data.toString());
           var rel = path.relative('../API/yql-tables/limit', file);
           var name = path.basename(rel, '.xml')
@@ -144,6 +153,7 @@ fibers(function() {
           app.get('/'  + pps + '/src' , table.getSrc);
           app.get('/'  + pps + '/sample', table.getSample);
           app.get('/'  + pps + '/schema', table.getSchema);
+          logger.debug('Loaded opentable: ' + rel);
         } catch (err) {
           console.log('Invalid XML document: ' + file + " " + err);
         }
